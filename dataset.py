@@ -5,6 +5,7 @@ from astropy.io import fits
 from PIL import Image
 from labels import LABELS
 from pathlib import Path
+from torchvision import transforms
 
 
 def deg_to_box(deg, sep, radius=1):
@@ -18,10 +19,11 @@ def deg_to_box(deg, sep, radius=1):
 
 
 class PlanetDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transforms, train=True):
+    def __init__(self, root, transforms, train=True, device=None):
         self.root = root
         self.transforms = transforms
         self.train = train
+        self.device = device
         # load all image files, sorting them to
         # ensure that they are aligned
         self.imgs = []
@@ -56,15 +58,26 @@ class PlanetDataset(torch.utils.data.Dataset):
             xmin, ymin, xmax, ymax = deg_to_box(label["thetas"][i], label["seps"][i])
             boxes.append([xmin, ymin, xmax, ymax])
 
+        # test
+        boxes.append([0, 0, 2, 2])
+
         # convert everything into a torch.Tensor
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         # there is only one class
-        labels = torch.ones((num_objs,), dtype=torch.int64)
+        labels = torch.ones((num_objs + 1,), dtype=torch.int64)
+        labels[labels.shape[0] - 1] = -1
 
         image_id = torch.tensor([idx])
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
         # suppose all instances are not crowd
-        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
+        iscrowd = torch.zeros((num_objs + 1,), dtype=torch.int64)
+
+        if self.device is not None:
+            boxes = boxes.to(device=self.device)
+            labels = labels.to(device=self.device)
+            image_id = image_id.to(device=self.device)
+            area = area.to(device=self.device) 
+            iscrowd = iscrowd.to(device=self.device) 
 
         target = {}
         target["boxes"] = boxes
@@ -75,6 +88,12 @@ class PlanetDataset(torch.utils.data.Dataset):
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
+
+        # convert img to tensor
+        trans = transforms.Compose([transforms.ToTensor()])
+        img = trans(img)
+        if self.device is not None:
+            img = img.to(device=self.device)
 
         return img, target
 
