@@ -42,9 +42,9 @@ class PlanetDataset(torch.utils.data.Dataset):
         data = fits.getdata(self.imgs[idx])
         data = np.nan_to_num(data)
         data = np.mean([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
-        data = np.transpose(data, (1, 2, 0))
+        #data = np.transpose(data, (1, 2, 0))
 
-        img = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
+        #img = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
         # note that we haven't converted the mask to RGB,
         # because each color corresponds to a different instance
         # with 0 being background
@@ -58,26 +58,15 @@ class PlanetDataset(torch.utils.data.Dataset):
             xmin, ymin, xmax, ymax = deg_to_box(label["thetas"][i], label["seps"][i])
             boxes.append([xmin, ymin, xmax, ymax])
 
-        # test
-        boxes.append([0, 0, 2, 2])
-
         # convert everything into a torch.Tensor
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         # there is only one class
-        labels = torch.ones((num_objs + 1,), dtype=torch.int64)
-        labels[labels.shape[0] - 1] = -1
+        labels = torch.ones((num_objs,), dtype=torch.int64)
 
         image_id = torch.tensor([idx])
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
         # suppose all instances are not crowd
-        iscrowd = torch.zeros((num_objs + 1,), dtype=torch.int64)
-
-        if self.device is not None:
-            boxes = boxes.to(device=self.device)
-            labels = labels.to(device=self.device)
-            image_id = image_id.to(device=self.device)
-            area = area.to(device=self.device) 
-            iscrowd = iscrowd.to(device=self.device) 
+        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 
         target = {}
         target["boxes"] = boxes
@@ -87,13 +76,11 @@ class PlanetDataset(torch.utils.data.Dataset):
         target["iscrowd"] = iscrowd
 
         if self.transforms is not None:
-            img, target = self.transforms(img, target)
+            img, target = self.transforms(data, target)
 
         # convert img to tensor
         trans = transforms.Compose([transforms.ToTensor()])
-        img = trans(img)
-        if self.device is not None:
-            img = img.to(device=self.device)
+        img = trans(data)
 
         return img, target
 
