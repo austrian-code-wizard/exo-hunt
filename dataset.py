@@ -16,9 +16,10 @@ def deg_to_box(deg, sep, radius=3):
 
 
 class PlanetDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transforms):
+    def __init__(self, root, transforms, train=True):
         self.root = root
         self.transforms = transforms
+        self.train = train
         # load all image files, sorting them to
         # ensure that they are aligned
         self.imgs = []
