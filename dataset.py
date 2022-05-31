@@ -42,9 +42,9 @@ class PlanetDataset(torch.utils.data.Dataset):
         data = fits.getdata(self.imgs[idx])
         data = np.nan_to_num(data)
         data = np.mean([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
-        #data = np.transpose(data, (1, 2, 0))
+        data = np.transpose(data, (1, 2, 0))
 
-        #img = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
+        img = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
         # note that we haven't converted the mask to RGB,
         # because each color corresponds to a different instance
         # with 0 being background
@@ -80,7 +80,7 @@ class PlanetDataset(torch.utils.data.Dataset):
 
         # convert img to tensor
         trans = transforms.Compose([transforms.ToTensor()])
-        img = trans(data)
+        img = trans(img)
 
         return img, target
 
