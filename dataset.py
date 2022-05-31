@@ -1,7 +1,7 @@
 import torch
 import math
-import os
 import numpy as np
+from astropy.io import fits
 from PIL import Image
 from labels import LABELS
 from pathlib import Path
@@ -24,15 +24,22 @@ class PlanetDataset(torch.utils.data.Dataset):
         self.imgs = []
         self.labels = []
         for img in Path(root).rglob("*.fits"):
-            path = img.absolute().split("/")
+            path = str(img.absolute()).split("/")
+            if path[-1].split("_")[0] not in LABELS:
+                continue
             obj = path[-3]
             date = path[-2]
-            self.imgs.append(path)
+            self.imgs.append(img.absolute())
             self.labels.append(LABELS[obj][date])
 
     def __getitem__(self, idx):
         # load images and masks
-        img = Image.open(self.imgs[idx])
+        data = fits.getdata(self.imgs[idx])
+        data = np.nan_to_num(data)
+        data = np.mean([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        data = np.transpose(data, (1, 2, 0))
+
+        img = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
         # note that we haven't converted the mask to RGB,
         # because each color corresponds to a different instance
         # with 0 being background
