@@ -8,11 +8,13 @@ from pathlib import Path
 
 
 def deg_to_box(deg, sep, radius=3):
-  y_center = math.sin(deg) * sep
-  x_center = math.cos(deg) * sep
-  y_center += 451 // 2
-  x_center += 451 // 2
-  return int(x_center - radius), int(y_center - radius), int(x_center + radius), int(y_center + radius)
+    deg += 90
+    deg = math.radians(deg)
+    y_center = -math.sin(deg) * sep
+    x_center = math.cos(deg) * sep
+    y_center += 451 // 2
+    x_center += 451 // 2
+    return int(x_center - radius), int(y_center - radius), int(x_center + radius), int(y_center + radius)
 
 
 class PlanetDataset(torch.utils.data.Dataset):
