@@ -7,7 +7,7 @@ from labels import LABELS
 from pathlib import Path
 
 
-def deg_to_box(deg, sep, radius=3):
+def deg_to_box(deg, sep, radius=1):
     deg += 90
     deg = math.radians(deg)
     y_center = -math.sin(deg) * sep
