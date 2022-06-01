@@ -52,7 +52,7 @@ def check_accuracy(dataset, model, collate_fn, device):
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
 
-def train(model, optimizer, dataset, collate_fn, device, epochs=1):
+def train(model, optimizer, scheduler, dataset, collate_fn, device, epochs=1):
     """
     Train a model PyTorch Module API.
     
@@ -92,6 +92,7 @@ def train(model, optimizer, dataset, collate_fn, device, epochs=1):
             # Actually update the parameters of the model using the gradients
             # computed by the backwards pass.
             optimizer.step()
+        scheduler.step()
         print(f"Finished epoch (Loss: {loss})")
 
 

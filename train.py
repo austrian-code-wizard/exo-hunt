@@ -16,8 +16,8 @@ print(f"Using device {device}")
 
 train_path = '../data/train'
 test_path = '../data/test'
-train_dataset = PlanetDataset(train_path, None, True, 10, "conv")
-test_dataset = PlanetDataset(test_path, None, False, 10, "conv")
+train_dataset = PlanetDataset(train_path, None, True, 10, "min")
+test_dataset = PlanetDataset(test_path, None, True, 10, "min")
 
 # DEFINE THE PRETRAINED MODEL
 
@@ -36,9 +36,13 @@ model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
 learning_rate = 1e-4
 
 #optimizer = optim.SGD(model.parameters(), lr=learning_rate, nesterov=True, momentum=0.9)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
+# and a learning rate scheduler
+lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                                                step_size=3,
+                                               gamma=0.5)
 
-train(model, optimizer, train_dataset, collate_fn, device, epochs=10)
+train(model, optimizer, lr_scheduler, train_dataset, collate_fn, device, epochs=15)
 
 check_accuracy(train_dataset, model, collate_fn, device)
 
