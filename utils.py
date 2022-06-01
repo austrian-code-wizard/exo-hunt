@@ -41,12 +41,15 @@ def check_accuracy(dataset, model, collate_fn, device):
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
             predictions = model(imgs)
             
-            print(f'Iter {counter}')
+            
             pred_boxes = predictions[0]["boxes"]
             tg_boxes = targets[0]['boxes']
             
             if grade_boxes(pred_boxes, tg_boxes) > 0:
                 num_correct += 1
+
+            if not counter % 10: print(f'Iter {counter}')
+            counter += 1
             num_samples += 1
         acc = float(num_correct) / num_samples
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))

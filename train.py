@@ -16,8 +16,8 @@ print(f"Using device {device}")
 
 train_path = '../data/train'
 test_path = '../data/test'
-train_dataset = PlanetDataset(train_path, None, True, 10)
-test_dataset = PlanetDataset(test_path, None, False)
+train_dataset = PlanetDataset(train_path, None, True, 100)
+test_dataset = PlanetDataset(test_path, None, True, 100)
 
 weight_decays = [0, 1e-5, 1e-4]
 
@@ -35,9 +35,9 @@ model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
 
 learning_rate = 1e-4
 
-optimizer = OPTIMIZERS['adam'](model, learning_rate, weight_decays[0])
+optimizer = OPTIMIZERS['adam'](model, learning_rate, weight_decays[1])
 
-train(model, optimizer, train_dataset, collate_fn, device, epochs=10)
+train(model, optimizer, train_dataset, collate_fn, device, epochs=1)
 
 check_accuracy(train_dataset, model, collate_fn, device)
 
