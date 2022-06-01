@@ -33,11 +33,13 @@ def grade_boxes(pred_boxes, true_boxes):
     return successes
 
 
-def check_accuracy(dataset, model, collate_fn, device):
+def check_accuracy(dataset, model, collate_fn, log, epoch, device):
     loader = DataLoader(dataset, batch_size=STATIC_BATCH_SIZE, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    log_direction = 'validation'
     if loader.dataset.train:
         print('Checking accuracy on validation set')
     else:
+        log_direction = 'test'
         print('Checking accuracy on test set')   
     num_correct = 0
     num_samples = 0
@@ -48,7 +50,6 @@ def check_accuracy(dataset, model, collate_fn, device):
             imgs = list(image.to(device) for image in imgs)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
             predictions = model(imgs)
-            
             
             pred_boxes = predictions[0]["boxes"]
             tg_boxes = targets[0]['boxes']
@@ -61,10 +62,14 @@ def check_accuracy(dataset, model, collate_fn, device):
             counter += 1
             num_samples += 1
         acc = float(num_correct) / num_samples
+        if epoch is not None:
+            log[log_direction + str(epoch)] = acc
+        else:
+            log[log_direction] = acc
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
 
-def train(model, optimizer, scheduler, dataset, collate_fn, device, epochs=1):
+def train(model, optimizer, scheduler, dataset, collate_fn, device, log, epochs=1):
     """
     Train a model PyTorch Module API.
     
@@ -107,9 +112,10 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, epochs=1):
         
         scheduler.step()
         print(f"Finished epoch (Loss: {loss})")
+        log['loss' + str(e + 1)]
         train_path = '../data/train'
         val_dataset = PlanetDataset(train_path, None, True, 100, "min")
-        check_accuracy(val_dataset, model, collate_fn, device)
+        check_accuracy(val_dataset, model, collate_fn, log, e + 1, device)
 
 
 def collate_fn(batch):

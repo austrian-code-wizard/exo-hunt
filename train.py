@@ -1,4 +1,5 @@
 import torch
+import json
 from dataset import PlanetDataset
 from models import MODELS 
 from optimizers import OPTIMIZERS
@@ -36,14 +37,18 @@ model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
 
 learning_rate = 1e-4
 
+LOG = {}
 
 optimizer = OPTIMIZERS['adam'](model, learning_rate, weight_decays[2])
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=3,
                                                gamma=0.1)
 
-train(model, optimizer, lr_scheduler, train_dataset, collate_fn, device, epochs=1)
+train(model, optimizer, lr_scheduler, train_dataset, collate_fn, device, LOG, epochs=1)
 
-check_accuracy(train_dataset, model, collate_fn, device)
+check_accuracy(test_dataset, model, collate_fn, LOG, None, device)
 
-check_accuracy(test_dataset, model, collate_fn, device)
+log_path = './log.json'
+with open(log_path, 'w') as f:
+    logs = json.dumps(LOG)
+    f.write(logs)
