@@ -16,8 +16,8 @@ print(f"Using device {device}")
 
 train_path = '../data/train'
 test_path = '../data/test'
-train_dataset = PlanetDataset(train_path, None, True, 10, "min")
-test_dataset = PlanetDataset(test_path, None, True, 10, "min")
+train_dataset = PlanetDataset(train_path, None, True, 5, "min")
+test_dataset = PlanetDataset(test_path, None, True, 5, "min")
 
 # DEFINE THE PRETRAINED MODEL
 
@@ -40,7 +40,7 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
 # and a learning rate scheduler
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=3,
-                                               gamma=0.5)
+                                               gamma=0.8)
 
 train(model, optimizer, lr_scheduler, train_dataset, collate_fn, device, epochs=15)
 
