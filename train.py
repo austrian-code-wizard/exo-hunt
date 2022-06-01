@@ -19,6 +19,8 @@ test_path = '../data/test'
 train_dataset = PlanetDataset(train_path, None, True, 10)
 test_dataset = PlanetDataset(test_path, None, False)
 
+weight_decays = [0, 1e-5, 1e-4]
+
 # load a model pre-trained on COCO
 model = MODELS['resnet']()
 
@@ -31,9 +33,9 @@ in_features = model.roi_heads.box_predictor.cls_score.in_features
 # replace the pre-trained head with a new one
 model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
 
-learning_rate = 1e-3
+learning_rate = 1e-4
 
-optimizer = OPTIMIZERS['adam'](model, learning_rate)
+optimizer = OPTIMIZERS['adam'](model, learning_rate, weight_decays[0])
 
 train(model, optimizer, train_dataset, collate_fn, device, epochs=10)
 
