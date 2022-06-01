@@ -6,6 +6,7 @@ from PIL import Image
 from labels import LABELS
 from pathlib import Path
 from torchvision import transforms
+import torch.nn as nn
 
 
 def deg_to_box(deg, sep, radius=1):
@@ -19,7 +20,7 @@ def deg_to_box(deg, sep, radius=1):
 
 
 class PlanetDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transforms, train=True, limit=None):
+    def __init__(self, root, transforms, train=True, limit=None, reduction="mean"):
         self.root = root
         self.transforms = transforms
         self.train = train
@@ -28,6 +29,8 @@ class PlanetDataset(torch.utils.data.Dataset):
         self.imgs = []
         self.labels = []
         self.lim = limit
+        self.reduction = reduction
+        self.preModel = nn.Conv2d(9, 3, kernel_size=3, stride=1, padding=1)
         for img in Path(root).rglob("*.fits"):
             path = str(img.absolute()).split("/")
             if path[-1].split("_")[0] not in LABELS:
@@ -45,7 +48,19 @@ class PlanetDataset(torch.utils.data.Dataset):
         # load images and masks
         data = fits.getdata(self.imgs[idx])
         data = np.nan_to_num(data)
-        data = np.mean([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        if self.reduction == "mean":
+            data = np.mean([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        elif self.reduction == "max":
+            data = np.max([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        elif self.reduction == "min":
+            data = np.min([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        elif self.reduction == "sum":
+            data = np.sum([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        elif self.reduction == "conv":
+            data = data.astype(np.float32)
+            temp = torch.from_numpy(data).unsqueeze(axis=0)
+            tense = self.preModel(temp)
+            data = tense.detach().numpy().squeeze(axis=0)
         data = np.transpose(data, (1, 2, 0))
 
         img = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
