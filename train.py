@@ -17,14 +17,13 @@ print(f"Using device {device}")
 train_path = '../data/train'
 test_path = '../data/test'
 
-train_dataset = PlanetDataset(train_path, None, True, 5, "min")
-test_dataset = PlanetDataset(test_path, None, True, 5, "min")
+train_dataset = PlanetDataset(train_path, None, True, 1000, "min")
+test_dataset = PlanetDataset(train_path, None, True, 100, "min")
 
-
-weight_decays = [0, 1e-5, 1e-4]
+weight_decays = [0, 1e-5, 1e-4, 1e-3]
 
 # load a model pre-trained on COCO
-model = MODELS['resnet']()
+model = MODELS['mobilenet']()
 
 # replace the classifier with a new one, that has num_classes which is user-defined
 num_classes = 2  # 1 class (planet) + background
@@ -38,12 +37,12 @@ model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
 learning_rate = 1e-4
 
 
-optimizer = OPTIMIZERS['adam'](model, learning_rate, weight_decays[1])
+optimizer = OPTIMIZERS['adam'](model, learning_rate, weight_decays[2])
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=3,
-                                               gamma=0.8)
+                                               gamma=0.1)
 
-train(model, optimizer, lr_scheduler, train_dataset, collate_fn, device, epochs=15)
+train(model, optimizer, lr_scheduler, train_dataset, collate_fn, device, epochs=1)
 
 check_accuracy(train_dataset, model, collate_fn, device)
 

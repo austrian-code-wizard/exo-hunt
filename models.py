@@ -10,11 +10,11 @@ def get_resnet_model():
 
 # Returns the MobileNet V2 backbone
 def get_mobilenet_model():
-    backbone = torchvision.models.mobilenet_v2(pretrained=True).features
+    backbone = torchvision.models.mobilenet_v2(pretrained=False).features
     backbone.out_channels = 1280
     anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),))
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'], output_size=7, sampling_ratio=2)
-    model = FasterRCNN(backbone, num_classes=2, rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler)
+    model = FasterRCNN(backbone, num_classes=2, image_mean=[0.0006, 0.0006, 0.0006], image_std=[0.0250, 0.0246, 0.0240], rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler)
     return model
 
 # Returns the VGG 16 backbone

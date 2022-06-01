@@ -1,3 +1,4 @@
+from random import shuffle
 import torch
 import math
 import numpy as np
@@ -9,7 +10,7 @@ from torchvision import transforms
 import torch.nn as nn
 
 
-def deg_to_box(deg, sep, radius=1):
+def deg_to_box(deg, sep, radius=3):
     deg += 90
     deg = math.radians(deg)
     y_center = -math.sin(deg) * sep
@@ -41,8 +42,10 @@ class PlanetDataset(torch.utils.data.Dataset):
             self.labels.append(LABELS[obj][date])
 
         if self.lim is not None:
-            self.imgs = self.imgs[:self.lim]
-            self.labels = self.labels[:self.lim]
+            img_and_labels = [(img, lab) for img, lab in zip(self.imgs, self.labels)]
+            shuffle(img_and_labels)
+            self.imgs = [d[0] for d in img_and_labels][:self.lim]
+            self.labels = [d[1] for d in img_and_labels][:self.lim]
 
     def __getitem__(self, idx):
         # load images and masks

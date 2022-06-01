@@ -1,15 +1,23 @@
 import torch
 from torch.utils.data import DataLoader
 
+from dataset import PlanetDataset
+
 # Faster RCNN only supports batch size of 1
 STATIC_BATCH_SIZE = 1
 
 
 def overlap(pred_box, true_box):
     # xmin, ymin, xmax, ymax
-    true_center = ((true_box[0] + true_box[2]) / 2, (true_box[1] + true_box[3]) / 2)
-    width_val = true_center[0] > pred_box[0] and true_center[0] < pred_box[2]
-    height_val = true_center[1] > pred_box[1] and true_center[1] < pred_box[3]
+    #true_center = ((true_box[0] + true_box[2]) / 2, (true_box[1] + true_box[3]) / 2)
+    #width_val = true_center[0] > pred_box[0] and true_center[0] < pred_box[2]
+    #height_val = true_center[1] > pred_box[1] and true_center[1] < pred_box[3]
+    width_val = False
+    if (pred_box[0] >= true_box[0] and pred_box[0] <= true_box[2]) or (pred_box[2] >= true_box[0] and pred_box[2] <= true_box[2]):
+        width_val = True
+    height_val = False
+    if (pred_box[1] >= true_box[0] and pred_box[1] <= true_box[2]) or (pred_box[3] >= true_box[0] and pred_box[3] <= true_box[2]):
+        height_val = True
     return width_val and height_val
 
 
@@ -49,6 +57,7 @@ def check_accuracy(dataset, model, collate_fn, device):
                 num_correct += 1
 
             if not counter % 10: print(f'Iter {counter}')
+            if not loader.dataset.train and not counter % 100: print(f"Pred: {pred_boxes}\nTrue: {tg_boxes}\n")
             counter += 1
             num_samples += 1
         acc = float(num_correct) / num_samples
@@ -80,7 +89,7 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, epochs=1):
 
             loss_dict = model(imgs, targets)
             loss = sum(loss for loss in loss_dict.values())
-            if not counter % 10: print(f'Iter {counter}: Loss = {loss}')
+            if not counter % 100: print(f'Iter {counter}: Loss = {loss}')
             counter += 1
 
             # Zero out all of the gradients for the variables which the optimizer
@@ -95,8 +104,12 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, epochs=1):
             # Actually update the parameters of the model using the gradients
             # computed by the backwards pass.
             optimizer.step()
+        
         scheduler.step()
         print(f"Finished epoch (Loss: {loss})")
+        train_path = '../data/train'
+        val_dataset = PlanetDataset(train_path, None, True, 100, "min")
+        check_accuracy(val_dataset, model, collate_fn, device)
 
 
 def collate_fn(batch):
