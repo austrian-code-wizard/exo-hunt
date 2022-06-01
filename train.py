@@ -1,7 +1,7 @@
 import torch
-import torchvision
-import torch.optim as optim
 from dataset import PlanetDataset
+from models import MODELS 
+from optimizers import OPTIMIZERS
 from utils import train, check_accuracy, collate_fn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
@@ -16,13 +16,18 @@ print(f"Using device {device}")
 
 train_path = '../data/train'
 test_path = '../data/test'
+<<<<<<< HEAD
 train_dataset = PlanetDataset(train_path, None, True, 10, "min")
 test_dataset = PlanetDataset(test_path, None, True, 10, "min")
+=======
+train_dataset = PlanetDataset(train_path, None, True, 100)
+test_dataset = PlanetDataset(test_path, None, True, 100)
+>>>>>>> backbones
 
-# DEFINE THE PRETRAINED MODEL
+weight_decays = [0, 1e-5, 1e-4]
 
 # load a model pre-trained on COCO
-model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+model = MODELS['resnet']()
 
 # replace the classifier with a new one, that has num_classes which is user-defined
 num_classes = 2  # 1 class (planet) + background
@@ -35,6 +40,7 @@ model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
 
 learning_rate = 1e-4
 
+<<<<<<< HEAD
 #optimizer = optim.SGD(model.parameters(), lr=learning_rate, nesterov=True, momentum=0.9)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
 # and a learning rate scheduler
@@ -43,6 +49,11 @@ lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                gamma=0.5)
 
 train(model, optimizer, lr_scheduler, train_dataset, collate_fn, device, epochs=15)
+=======
+optimizer = OPTIMIZERS['adam'](model, learning_rate, weight_decays[1])
+
+train(model, optimizer, train_dataset, collate_fn, device, epochs=1)
+>>>>>>> backbones
 
 check_accuracy(train_dataset, model, collate_fn, device)
 
