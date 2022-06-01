@@ -19,15 +19,15 @@ def deg_to_box(deg, sep, radius=1):
 
 
 class PlanetDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transforms, train=True, device=None):
+    def __init__(self, root, transforms, train=True, limit=None):
         self.root = root
         self.transforms = transforms
         self.train = train
-        self.device = device
         # load all image files, sorting them to
         # ensure that they are aligned
         self.imgs = []
         self.labels = []
+        self.lim = limit
         for img in Path(root).rglob("*.fits"):
             path = str(img.absolute()).split("/")
             if path[-1].split("_")[0] not in LABELS:
@@ -36,6 +36,10 @@ class PlanetDataset(torch.utils.data.Dataset):
             date = path[-2]
             self.imgs.append(img.absolute())
             self.labels.append(LABELS[obj][date])
+
+        if self.lim is not None:
+            self.imgs = self.imgs[:self.lim]
+            self.labels = self.labels[:self.lim]
 
     def __getitem__(self, idx):
         # load images and masks
