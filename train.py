@@ -1,7 +1,7 @@
 import torch
-import torchvision
-import torch.optim as optim
 from dataset import PlanetDataset
+from models import MODELS 
+from optimizers import OPTIMIZERS
 from utils import train, check_accuracy, collate_fn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
@@ -19,10 +19,8 @@ test_path = '../data/test'
 train_dataset = PlanetDataset(train_path, None, True, 10)
 test_dataset = PlanetDataset(test_path, None, False)
 
-# DEFINE THE PRETRAINED MODEL
-
 # load a model pre-trained on COCO
-model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+model = MODELS['resnet']()
 
 # replace the classifier with a new one, that has num_classes which is user-defined
 num_classes = 2  # 1 class (planet) + background
@@ -35,8 +33,7 @@ model.roi_heads.box_predictor = FastRCNNPredictor(in_features, 2)
 
 learning_rate = 1e-3
 
-#optimizer = optim.SGD(model.parameters(), lr=learning_rate, nesterov=True, momentum=0.9)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = OPTIMIZERS['adam'](model, learning_rate)
 
 train(model, optimizer, train_dataset, collate_fn, device, epochs=10)
 
