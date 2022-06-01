@@ -112,7 +112,7 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, log, epochs=
         
         scheduler.step()
         print(f"Finished epoch (Loss: {loss})")
-        log['loss' + str(e + 1)]
+        log['loss' + str(e + 1)] = loss.item()
         train_path = '../data/train'
         val_dataset = PlanetDataset(train_path, None, True, 100, "min")
         check_accuracy(val_dataset, model, collate_fn, log, e + 1, device)

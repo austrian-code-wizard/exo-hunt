@@ -13,13 +13,14 @@ if USE_GPU and torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
+
 print(f"Using device {device}")
 
 train_path = '../data/train'
 test_path = '../data/test'
 
-train_dataset = PlanetDataset(train_path, None, True, 1000, "min")
-test_dataset = PlanetDataset(train_path, None, True, 100, "min")
+train_dataset = PlanetDataset(train_path, None, True, 10, "min")
+test_dataset = PlanetDataset(train_path, None, True, 10, "min")
 
 weight_decays = [0, 1e-5, 1e-4, 1e-3]
 
