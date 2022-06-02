@@ -23,20 +23,22 @@ test_path = '../data2/test'
 weight_decays = [0, 1e-5, 1e-4, 1e-3]
 
 # SET HYPERPARAMETERS HERE
-EXPERIMENT_NAME="data2_1000train_3layer_conv"
+EXPERIMENT_NAME="data2_1000train_3layer_conv_newanchorgen_rot_limtraindata"
 PRETRAINED_BACKBONE=False
-EPOCHS = 2
-WEIGHT_DECAY = weight_decays[2]
+EPOCHS = 5
+WEIGHT_DECAY = weight_decays[3]
 LEARNING_RATE = 1e-3
 STEP_SIZE = 1
 GAMMA = 0.1
 MODEL = '3layer'
 OPTIMIZER = 'adam'
 DIM_REDUCTION = 'conv'
+LIM_TRAIN_SIZE=None
+LIM_TEST_SIZE=None
 
 # load dataset
-train_dataset = PlanetDataset(train_path, None, True, 1000, DIM_REDUCTION)
-test_dataset = PlanetDataset(test_path, None, False, 100, DIM_REDUCTION)
+train_dataset = PlanetDataset(train_path, None, True, LIM_TRAIN_SIZE, DIM_REDUCTION)
+test_dataset = PlanetDataset(test_path, None, False, LIM_TEST_SIZE, DIM_REDUCTION)
 
 # load a model pre-trained on COCO
 model = MODELS[MODEL](DIM_REDUCTION, PRETRAINED_BACKBONE)
@@ -62,6 +64,10 @@ LOG = {
     'gamma': GAMMA,
     'optimizer': OPTIMIZER,
     'scheduler': 'stepLR',
+    'train_path': train_path,
+    'test_path': test_path,
+    'num_train': LIM_TRAIN_SIZE,
+    'num_test': LIM_TEST_SIZE,
     'test': {
         'final_test_accuracy': 0,
         'img_boxes': [],

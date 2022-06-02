@@ -10,9 +10,9 @@ STATIC_BATCH_SIZE = 1
 
 def overlap(pred_box, true_box):
     # xmin, ymin, xmax, ymax
-    #true_center = ((true_box[0] + true_box[2]) / 2, (true_box[1] + true_box[3]) / 2)
-    #width_val = true_center[0] > pred_box[0] and true_center[0] < pred_box[2]
-    #height_val = true_center[1] > pred_box[1] and true_center[1] < pred_box[3]
+    """true_center = ((true_box[0] + true_box[2]) / 2, (true_box[1] + true_box[3]) / 2)
+    width_val = true_center[0] > pred_box[0] and true_center[0] < pred_box[2]
+    height_val = true_center[1] > pred_box[1] and true_center[1] < pred_box[3]"""
     width_val = False
     if (pred_box[0] >= true_box[0] and pred_box[0] <= true_box[2]) or (pred_box[2] >= true_box[0] and pred_box[2] <= true_box[2]):
         width_val = True
@@ -66,7 +66,6 @@ def check_accuracy(dataset, model, collate_fn, log, epoch, device):
 
 
             if not counter % 10: print(f'Iter {counter}')
-            if not loader.dataset.train and not counter % 100: print(f"Pred: {pred_boxes}\nTrue: {tg_boxes}\n")
             counter += 1
             num_samples += 1
         acc = float(num_correct) / num_samples
@@ -130,7 +129,7 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, log, epochs=
             'val_size': 100,
         })
         train_path = '../data/train'
-        val_dataset = PlanetDataset(train_path, None, True, 10, "conv")
+        val_dataset = PlanetDataset(train_path, None, True, 50, "conv")
         check_accuracy(val_dataset, model, collate_fn, log, e, device)
 
 

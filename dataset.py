@@ -1,4 +1,4 @@
-from random import shuffle
+from random import shuffle, randint
 import torch
 import math
 import numpy as np
@@ -21,7 +21,7 @@ def deg_to_box(deg, sep, radius=3):
 
 
 class PlanetDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transforms, train=True, limit=None, reduction="mean"):
+    def __init__(self, root, transforms, train=True, limit=None, reduction="mean", rot=True):
         self.root = root
         self.transforms = transforms
         self.train = train
@@ -31,13 +31,18 @@ class PlanetDataset(torch.utils.data.Dataset):
         self.labels = []
         self.lim = limit
         self.reduction = reduction
-        self.preModel = nn.Conv2d(9, 3, kernel_size=3, stride=1, padding=1)
+        self.rot = True
+        count = 0
         for object_dir in Path(root).glob("*"):
             for date_dir in object_dir.glob("*"):
                 for file_dir in date_dir.rglob("*.fits"):
                     path = str(file_dir.absolute()).split("/")
                     if path[-1].split("_")[0] not in LABELS:
                         continue
+                    count += 1
+                    if train and count > 5:
+                        count = 0
+                        break
                     obj = path[-3]
                     date = path[-2]
                     self.imgs.append(file_dir.absolute())
@@ -54,31 +59,6 @@ class PlanetDataset(torch.utils.data.Dataset):
         # because each color corresponds to a different instance
         # with 0 being background
         # instances are encoded as different colors
-        label = self.labels[idx]
-
-        # get bounding box coordinates for each mask
-        num_objs = len(label["thetas"])
-        boxes = []
-        for i in range(num_objs):
-            xmin, ymin, xmax, ymax = deg_to_box(label["thetas"][i], label["seps"][i])
-            boxes.append([xmin, ymin, xmax, ymax])
-
-        # convert everything into a torch.Tensor
-        boxes = torch.as_tensor(boxes, dtype=torch.float32)
-        # there is only one class
-        labels = torch.ones((num_objs,), dtype=torch.int64)
-
-        image_id = torch.tensor([idx])
-        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
-        # suppose all instances are not crowd
-        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
-
-        target = {}
-        target["boxes"] = boxes
-        target["labels"] = labels
-        target["image_id"] = image_id
-        target["area"] = area
-        target["iscrowd"] = iscrowd
 
         # load images and masks
         data = fits.getdata(self.imgs[idx])
@@ -103,6 +83,34 @@ class PlanetDataset(torch.utils.data.Dataset):
         trans = transforms.Compose([transforms.ToTensor()])
 
         data = trans(data).type(torch.FloatTensor)
+        rot_deg = randint(0, 359) if self.rot else 0
+        data = transforms.functional.rotate(data, rot_deg) if self.rot else data
+
+        label = self.labels[idx]
+
+        # get bounding box coordinates for each mask
+        num_objs = len(label["thetas"])
+        boxes = []
+        for i in range(num_objs):
+            xmin, ymin, xmax, ymax = deg_to_box((label["thetas"][i] + rot_deg) % 360, label["seps"][i])
+            boxes.append([xmin, ymin, xmax, ymax])
+
+        # convert everything into a torch.Tensor
+        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+        # there is only one class
+        labels = torch.ones((num_objs,), dtype=torch.int64)
+
+        image_id = torch.tensor([idx])
+        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        # suppose all instances are not crowd
+        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
+
+        target = {}
+        target["boxes"] = boxes
+        target["labels"] = labels
+        target["image_id"] = image_id
+        target["area"] = area
+        target["iscrowd"] = iscrowd
 
         if self.transforms is not None:
             data, target = self.transforms(data, target)

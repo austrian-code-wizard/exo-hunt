@@ -49,7 +49,7 @@ def get_model(backbone, out_channels, dim_reduction):
         )
     backbone.out_channels = out_channels
     anchor_generator = AnchorGenerator(
-        sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),))
+        sizes=((6),), aspect_ratios=((1.0),))
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(
         featmap_names=['0'], output_size=7, sampling_ratio=2)
     model = FasterRCNN(backbone, num_classes=2, image_mean=mean_and_std[dim_reduction]["mean"],
@@ -96,7 +96,7 @@ def get_3layer_model(dim_reduction, pretrained=False):
     channel_2 = 32
     channel_out = 32
     
-    """backbone = nn.Sequential(
+    backbone = nn.Sequential(
         nn.Conv2d(3, channel_1, 7, padding=3),
         nn.BatchNorm2d(channel_1),
         nn.ReLU(),
@@ -107,8 +107,9 @@ def get_3layer_model(dim_reduction, pretrained=False):
         nn.MaxPool2d(3, stride=2),
         nn.Conv2d(channel_2, channel_out, 3, padding=1),
         nn.BatchNorm2d(channel_out),
-        nn.ReLU(),"""
-    channel_out = 16
+        nn.ReLU()
+    )
+    """channel_out = 16
     drop_rate = 0.1
 
     backbone = nn.Sequential(
@@ -127,7 +128,7 @@ def get_3layer_model(dim_reduction, pretrained=False):
         nn.ReLU(),
         nn.MaxPool2d(3, stride=2),
         nn.Dropout(p=drop_rate),
-    )
+    )"""
     return get_model(backbone, channel_out, dim_reduction)
 
 
