@@ -32,14 +32,16 @@ class PlanetDataset(torch.utils.data.Dataset):
         self.lim = limit
         self.reduction = reduction
         self.preModel = nn.Conv2d(9, 3, kernel_size=3, stride=1, padding=1)
-        for img in Path(root).rglob("*.fits"):
-            path = str(img.absolute()).split("/")
-            if path[-1].split("_")[0] not in LABELS:
-                continue
-            obj = path[-3]
-            date = path[-2]
-            self.imgs.append(img.absolute())
-            self.labels.append(LABELS[obj][date])
+        for object_dir in Path(root).glob("*"):
+            for date_dir in object_dir.glob("*"):
+                for file_dir in date_dir.rglob("*.fits"):
+                    path = str(file_dir.absolute()).split("/")
+                    if path[-1].split("_")[0] not in LABELS:
+                        continue
+                    obj = path[-3]
+                    date = path[-2]
+                    self.imgs.append(file_dir.absolute())
+                    self.labels.append(LABELS[obj][date])
 
         if self.lim is not None:
             img_and_labels = [(img, lab) for img, lab in zip(self.imgs, self.labels)]
@@ -48,25 +50,6 @@ class PlanetDataset(torch.utils.data.Dataset):
             self.labels = [d[1] for d in img_and_labels][:self.lim]
 
     def __getitem__(self, idx):
-        # load images and masks
-        data = fits.getdata(self.imgs[idx])
-        data = np.nan_to_num(data)
-        if self.reduction == "mean":
-            data = np.mean([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
-        elif self.reduction == "max":
-            data = np.max([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
-        elif self.reduction == "min":
-            data = np.min([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
-        elif self.reduction == "sum":
-            data = np.sum([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
-        elif self.reduction == "conv":
-            data = data.astype(np.float32)
-            temp = torch.from_numpy(data).unsqueeze(axis=0)
-            tense = self.preModel(temp)
-            data = tense.detach().numpy().squeeze(axis=0)
-        data = np.transpose(data, (1, 2, 0))
-
-        img = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
         # note that we haven't converted the mask to RGB,
         # because each color corresponds to a different instance
         # with 0 being background
@@ -97,14 +80,31 @@ class PlanetDataset(torch.utils.data.Dataset):
         target["area"] = area
         target["iscrowd"] = iscrowd
 
-        if self.transforms is not None:
-            img, target = self.transforms(data, target)
+        # load images and masks
+        data = fits.getdata(self.imgs[idx])
+        data = np.nan_to_num(data)
+        if self.reduction == "mean":
+            data = np.mean([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        elif self.reduction == "max":
+            data = np.max([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        elif self.reduction == "min":
+            data = np.min([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        elif self.reduction == "sum":
+            data = np.sum([data[:3,:,:], data[3:6,:,:], data[6:,:,:]], axis=0)
+        
+        data = np.transpose(data, (1, 2, 0))
+
+        if self.reduction != "conv":
+            data = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
 
         # convert img to tensor
         trans = transforms.Compose([transforms.ToTensor()])
-        img = trans(img)
+        data = trans(data.astype(np.float32)).type(torch.FloatTensor)
 
-        return img, target
+        if self.transforms is not None:
+            data, target = self.transforms(data, target)
+
+        return data, target
 
     def __len__(self):
         return len(self.imgs)

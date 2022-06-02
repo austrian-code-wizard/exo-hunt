@@ -134,3 +134,4 @@ data/
 # Mac files
 .DS_Store
 .vscode/
+results/
