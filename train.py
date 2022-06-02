@@ -21,7 +21,7 @@ train_path = '../data/train'
 test_path = '../data/test'
 
 train_dataset = PlanetDataset(train_path, None, True, 10, "min")
-test_dataset = PlanetDataset(train_path, None, True, 10, "min")
+test_dataset = PlanetDataset(train_path, None, False, 10, "min")
 
 weight_decays = [0, 1e-5, 1e-4, 1e-3]
 
@@ -76,5 +76,5 @@ check_accuracy(test_dataset, model, collate_fn, LOG, None, device)
 
 log_path = './log.json'
 with open(log_path, 'w') as f:
-    # logs = json.dumps(LOG)
-    f.write(LOG)
+    logs = json.dumps(LOG, indent=2)
+    f.write(logs)

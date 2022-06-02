@@ -59,10 +59,10 @@ def check_accuracy(dataset, model, collate_fn, log, epoch, device):
                 num_correct += 1
 
             if not loader.dataset.train:
-                log[log_split][counter] = {
-                    'pred_boxes': pred_boxes,
-                    'tg_boxes': tg_boxes
-                }
+                log[log_split]['img_boxes'].append({
+                    'pred_boxes': pred_boxes.cpu().numpy().tolist(),
+                    'tg_boxes': tg_boxes.cpu().numpy().tolist()
+               })
 
 
             if not counter % 10: print(f'Iter {counter}')
@@ -121,14 +121,14 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, log, epochs=
         
         scheduler.step()
         print(f"Finished epoch (Loss: {loss})")
-        log['validation'][e] = {
+        log['validation'].append({
             'epoch': str(e + 1),
-            'loss': loss,
+            'loss': loss.item(),
             'acc': 0,
             'time': time.time() - epoch_start_time,
             'batch': counter,
             'val_size': 100,
-        }
+        })
         train_path = '../data/train'
         val_dataset = PlanetDataset(train_path, None, True, 100, "min")
         check_accuracy(val_dataset, model, collate_fn, log, e, device)
