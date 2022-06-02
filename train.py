@@ -23,20 +23,20 @@ test_path = '../data2/test'
 weight_decays = [0, 1e-5, 1e-4, 1e-3]
 
 # SET HYPERPARAMETERS HERE
-EXPERIMENT_NAME="test"
+EXPERIMENT_NAME="data2_1000train_3layer_conv"
 PRETRAINED_BACKBONE=False
-EPOCHS = 3
+EPOCHS = 2
 WEIGHT_DECAY = weight_decays[2]
-LEARNING_RATE = 1e-4
-STEP_SIZE = 3
+LEARNING_RATE = 1e-3
+STEP_SIZE = 1
 GAMMA = 0.1
-MODEL = 'mobilenet'
+MODEL = '3layer'
 OPTIMIZER = 'adam'
 DIM_REDUCTION = 'conv'
 
 # load dataset
-train_dataset = PlanetDataset(train_path, None, True, 10, DIM_REDUCTION)
-test_dataset = PlanetDataset(test_path, None, False, 10, DIM_REDUCTION)
+train_dataset = PlanetDataset(train_path, None, True, 1000, DIM_REDUCTION)
+test_dataset = PlanetDataset(test_path, None, False, 100, DIM_REDUCTION)
 
 # load a model pre-trained on COCO
 model = MODELS[MODEL](DIM_REDUCTION, PRETRAINED_BACKBONE)

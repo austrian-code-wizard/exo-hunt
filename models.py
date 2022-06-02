@@ -92,14 +92,22 @@ def get_convnext_tiny_model(dim_reduction, pretrained=False):
 def get_3layer_model(dim_reduction, pretrained=False):
     assert not pretrained, "Cannot load weights for custom model"
 
-    channel_1 = 3
+    channel_1 = 64
     channel_2 = 32
-    channel_out = 16
-
+    channel_out = 32
+    
     backbone = nn.Sequential(
-        nn.Conv2d(channel_1, channel_2, 5, padding=2),
+        nn.Conv2d(3, channel_1, 7, padding=3),
+        nn.BatchNorm2d(channel_1),
         nn.ReLU(),
+        nn.MaxPool2d(3, stride=2),
+        nn.Conv2d(channel_1, channel_2, 3, padding=1),
+        nn.BatchNorm2d(channel_2),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2),
         nn.Conv2d(channel_2, channel_out, 3, padding=1),
+        nn.BatchNorm2d(channel_out),
+        nn.ReLU(),
     )
     return get_model(backbone, channel_out, dim_reduction)
 
