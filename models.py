@@ -96,7 +96,7 @@ def get_3layer_model(dim_reduction, pretrained=False):
     channel_2 = 32
     channel_out = 32
     
-    backbone = nn.Sequential(
+    """backbone = nn.Sequential(
         nn.Conv2d(3, channel_1, 7, padding=3),
         nn.BatchNorm2d(channel_1),
         nn.ReLU(),
@@ -107,7 +107,26 @@ def get_3layer_model(dim_reduction, pretrained=False):
         nn.MaxPool2d(3, stride=2),
         nn.Conv2d(channel_2, channel_out, 3, padding=1),
         nn.BatchNorm2d(channel_out),
+        nn.ReLU(),"""
+    channel_out = 16
+    drop_rate = 0.1
+
+    backbone = nn.Sequential(
+        nn.Conv2d(3, channel_2, 5, padding='same'),
+        nn.BatchNorm2d(channel_2),
         nn.ReLU(),
+        nn.MaxPool2d(3, stride=2),
+        nn.Dropout(p=drop_rate),
+        nn.Conv2d(channel_2, channel_2, 3, padding='same'),
+        nn.BatchNorm2d(channel_2),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2),
+        nn.Dropout(p=drop_rate),
+        nn.Conv2d(channel_2, channel_out, 3, padding='same'),
+        nn.BatchNorm2d(channel_out),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2),
+        nn.Dropout(p=drop_rate),
     )
     return get_model(backbone, channel_out, dim_reduction)
 
