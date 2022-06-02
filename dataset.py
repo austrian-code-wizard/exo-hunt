@@ -7,10 +7,26 @@ from PIL import Image
 from labels import LABELS
 from pathlib import Path
 from torchvision import transforms
-import torch.nn as nn
 
 
-def deg_to_box(deg, sep, radius=3):
+def get_paths(root, per_folder_lim=None):
+    paths = []
+    count = 0
+    for object_dir in Path(root).glob("*"):
+        for date_dir in object_dir.glob("*"):
+            for file_dir in date_dir.rglob("*.fits"):
+                path = str(file_dir.absolute()).split("/")
+                if path[-1].split("_")[0] not in LABELS:
+                    continue
+                count += 1
+                if per_folder_lim and count > per_folder_lim:
+                    count = 0
+                    break
+                paths.append(file_dir)
+    return paths
+
+
+def deg_to_box(deg, sep, radius=2):
     deg += 90
     deg = math.radians(deg)
     y_center = -math.sin(deg) * sep
@@ -21,8 +37,7 @@ def deg_to_box(deg, sep, radius=3):
 
 
 class PlanetDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transforms, train=True, limit=None, reduction="mean", rot=True):
-        self.root = root
+    def __init__(self, paths, transforms, train=True, limit=None, reduction="mean", rot=True):
         self.transforms = transforms
         self.train = train
         # load all image files, sorting them to
@@ -31,22 +46,13 @@ class PlanetDataset(torch.utils.data.Dataset):
         self.labels = []
         self.lim = limit
         self.reduction = reduction
-        self.rot = True
-        count = 0
-        for object_dir in Path(root).glob("*"):
-            for date_dir in object_dir.glob("*"):
-                for file_dir in date_dir.rglob("*.fits"):
-                    path = str(file_dir.absolute()).split("/")
-                    if path[-1].split("_")[0] not in LABELS:
-                        continue
-                    count += 1
-                    if train and count > 5:
-                        count = 0
-                        break
-                    obj = path[-3]
-                    date = path[-2]
-                    self.imgs.append(file_dir.absolute())
-                    self.labels.append(LABELS[obj][date])
+        self.rot = rot
+        for fpath in paths:
+            path = str(fpath.absolute()).split("/")
+            obj = path[-3]
+            date = path[-2]
+            self.imgs.append(fpath.absolute())
+            self.labels.append(LABELS[obj][date])
 
         if self.lim is not None:
             img_and_labels = [(img, lab) for img, lab in zip(self.imgs, self.labels)]

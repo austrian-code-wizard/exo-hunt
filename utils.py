@@ -76,7 +76,7 @@ def check_accuracy(dataset, model, collate_fn, log, epoch, device):
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
 
-def train(model, optimizer, scheduler, dataset, collate_fn, device, log, epochs=1):
+def train(model, optimizer, scheduler, dataset, val_dataset, collate_fn, device, log, epochs=1):
     """
     Train a model PyTorch Module API.
     
@@ -128,8 +128,6 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, log, epochs=
             'batch': counter,
             'val_size': 100,
         })
-        train_path = '../data/train'
-        val_dataset = PlanetDataset(train_path, None, True, 50, "conv")
         check_accuracy(val_dataset, model, collate_fn, log, e, device)
 
 

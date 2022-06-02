@@ -1,7 +1,8 @@
+from random import shuffle
 from telnetlib import GA
 import torch
 import json
-from dataset import PlanetDataset
+from dataset import PlanetDataset, get_paths
 from models import MODELS 
 from optimizers import OPTIMIZERS
 from utils import train, check_accuracy, collate_fn
@@ -17,15 +18,15 @@ else:
 
 print(f"Using device {device}")
 
-train_path = '../data2/train'
-test_path = '../data2/test'
+train_path = '../data/train'
+test_path = '../data/test'
 
 weight_decays = [0, 1e-5, 1e-4, 1e-3]
 
 # SET HYPERPARAMETERS HERE
 EXPERIMENT_NAME="data2_1000train_3layer_conv_newanchorgen_rot_limtraindata"
 PRETRAINED_BACKBONE=False
-EPOCHS = 5
+EPOCHS = 3
 WEIGHT_DECAY = weight_decays[3]
 LEARNING_RATE = 1e-3
 STEP_SIZE = 1
@@ -34,11 +35,18 @@ MODEL = '3layer'
 OPTIMIZER = 'adam'
 DIM_REDUCTION = 'conv'
 LIM_TRAIN_SIZE=None
-LIM_TEST_SIZE=None
+LIM_TEST_SIZE=100
+
+paths = get_paths(train_path, 15) + get_paths(test_path, 15)
+shuffle(paths)
+val_paths = paths[:int(len(paths)*0.15)]
+test_paths = paths[int(len(paths)*0.15):int(len(paths)*0.25)]
+train_paths = paths[int(len(paths)*0.25):]
 
 # load dataset
-train_dataset = PlanetDataset(train_path, None, True, LIM_TRAIN_SIZE, DIM_REDUCTION)
-test_dataset = PlanetDataset(test_path, None, False, LIM_TEST_SIZE, DIM_REDUCTION)
+train_dataset = PlanetDataset(train_paths, None, train=True, limit=LIM_TRAIN_SIZE, reduction=DIM_REDUCTION)
+val_dataset = PlanetDataset(val_paths, None, train=True, reduction=DIM_REDUCTION)
+test_dataset = PlanetDataset(test_paths, None, train=False, limit=LIM_TEST_SIZE, reduction=DIM_REDUCTION)
 
 # load a model pre-trained on COCO
 model = MODELS[MODEL](DIM_REDUCTION, PRETRAINED_BACKBONE)
@@ -82,7 +90,7 @@ lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=STEP_SIZE,
                                                gamma=GAMMA)
 
-train(model, optimizer, lr_scheduler, train_dataset, collate_fn, device, LOG, epochs=EPOCHS)
+train(model, optimizer, lr_scheduler, train_dataset, val_dataset, collate_fn, device, LOG, epochs=EPOCHS)
 
 check_accuracy(test_dataset, model, collate_fn, LOG, None, device)
 

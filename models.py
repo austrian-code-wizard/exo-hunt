@@ -49,7 +49,7 @@ def get_model(backbone, out_channels, dim_reduction):
         )
     backbone.out_channels = out_channels
     anchor_generator = AnchorGenerator(
-        sizes=((6),), aspect_ratios=((1.0),))
+        sizes=((4),), aspect_ratios=((1.0),))
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(
         featmap_names=['0'], output_size=7, sampling_ratio=2)
     model = FasterRCNN(backbone, num_classes=2, image_mean=mean_and_std[dim_reduction]["mean"],
