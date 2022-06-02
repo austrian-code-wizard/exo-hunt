@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
+import time
 
 from dataset import PlanetDataset
 
@@ -33,11 +34,13 @@ def grade_boxes(pred_boxes, true_boxes):
     return successes
 
 
-def check_accuracy(dataset, model, collate_fn, device):
+def check_accuracy(dataset, model, collate_fn, log, epoch, device):
     loader = DataLoader(dataset, batch_size=STATIC_BATCH_SIZE, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    log_split = 'validation'
     if loader.dataset.train:
         print('Checking accuracy on validation set')
     else:
+        log_split = 'test'
         print('Checking accuracy on test set')   
     num_correct = 0
     num_samples = 0
@@ -49,22 +52,32 @@ def check_accuracy(dataset, model, collate_fn, device):
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
             predictions = model(imgs)
             
-            
             pred_boxes = predictions[0]["boxes"]
             tg_boxes = targets[0]['boxes']
             
             if grade_boxes(pred_boxes, tg_boxes) > 0:
                 num_correct += 1
 
+            if not loader.dataset.train:
+                log[log_split]['img_boxes'].append({
+                    'pred_boxes': pred_boxes.cpu().numpy().tolist(),
+                    'tg_boxes': tg_boxes.cpu().numpy().tolist()
+               })
+
+
             if not counter % 10: print(f'Iter {counter}')
             if not loader.dataset.train and not counter % 100: print(f"Pred: {pred_boxes}\nTrue: {tg_boxes}\n")
             counter += 1
             num_samples += 1
         acc = float(num_correct) / num_samples
+        if epoch is not None:
+            log[log_split][epoch]['acc'] = acc
+        else:
+            log[log_split]['final_test_accuracy'] = acc
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
 
-def train(model, optimizer, scheduler, dataset, collate_fn, device, epochs=1):
+def train(model, optimizer, scheduler, dataset, collate_fn, device, log, epochs=1):
     """
     Train a model PyTorch Module API.
     
@@ -82,6 +95,7 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, epochs=1):
         model.train()  # put model to training mode
         data_loader = DataLoader(dataset, batch_size=STATIC_BATCH_SIZE, shuffle=True, num_workers=4, collate_fn=collate_fn)
         counter = 0
+        epoch_start_time = time.time()
         for imgs, targets in data_loader:
             
             imgs = list(image.to(device) for image in imgs)
@@ -107,9 +121,17 @@ def train(model, optimizer, scheduler, dataset, collate_fn, device, epochs=1):
         
         scheduler.step()
         print(f"Finished epoch (Loss: {loss})")
+        log['validation'].append({
+            'epoch': str(e + 1),
+            'loss': loss.item(),
+            'acc': 0,
+            'time': time.time() - epoch_start_time,
+            'batch': counter,
+            'val_size': 100,
+        })
         train_path = '../data/train'
-        val_dataset = PlanetDataset(train_path, None, True, 50, "conv")
-        check_accuracy(val_dataset, model, collate_fn, device)
+        val_dataset = PlanetDataset(train_path, None, True, 10, "conv")
+        check_accuracy(val_dataset, model, collate_fn, log, e, device)
 
 
 def collate_fn(batch):

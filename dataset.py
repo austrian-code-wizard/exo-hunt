@@ -96,10 +96,13 @@ class PlanetDataset(torch.utils.data.Dataset):
 
         if self.reduction != "conv":
             data = Image.fromarray((data * 255).astype(np.uint8)).convert("RGB")
+        else:
+            data = data.astype(np.float32)
 
         # convert img to tensor
         trans = transforms.Compose([transforms.ToTensor()])
-        data = trans(data.astype(np.float32)).type(torch.FloatTensor)
+
+        data = trans(data).type(torch.FloatTensor)
 
         if self.transforms is not None:
             data, target = self.transforms(data, target)
