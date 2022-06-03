@@ -21,31 +21,33 @@ print(f"Using device {device}")
 train_path = '../data/train'
 test_path = '../data/test'
 
-weight_decays = [0, 1e-5, 1e-4, 1e-3]
+weight_decays = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
 
 # SET HYPERPARAMETERS HERE
-EXPERIMENT_NAME="data2_1000train_3layer_conv_newanchorgen_rot_limtraindata"
+EXPERIMENT_NAME="train_inception_conv_dec3"
 PRETRAINED_BACKBONE=False
 EPOCHS = 3
 WEIGHT_DECAY = weight_decays[3]
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-4
 STEP_SIZE = 1
 GAMMA = 0.1
-MODEL = '3layer'
+MODEL = 'inception'
 OPTIMIZER = 'adam'
 DIM_REDUCTION = 'conv'
 LIM_TRAIN_SIZE=None
-LIM_TEST_SIZE=100
+LIM_VAL_SIZE=None
+LIM_TEST_SIZE=None
+STRICT_ACC=False
 
 paths = get_paths(train_path, 15) + get_paths(test_path, 15)
 shuffle(paths)
-val_paths = paths[:int(len(paths)*0.15)]
-test_paths = paths[int(len(paths)*0.15):int(len(paths)*0.25)]
+test_paths = paths[:int(len(paths)*0.15)]
+val_paths = paths[int(len(paths)*0.15):int(len(paths)*0.25)]
 train_paths = paths[int(len(paths)*0.25):]
 
 # load dataset
 train_dataset = PlanetDataset(train_paths, None, train=True, limit=LIM_TRAIN_SIZE, reduction=DIM_REDUCTION)
-val_dataset = PlanetDataset(val_paths, None, train=True, reduction=DIM_REDUCTION)
+val_dataset = PlanetDataset(val_paths, None, train=True, limit=LIM_VAL_SIZE, reduction=DIM_REDUCTION)
 test_dataset = PlanetDataset(test_paths, None, train=False, limit=LIM_TEST_SIZE, reduction=DIM_REDUCTION)
 
 # load a model pre-trained on COCO
@@ -72,10 +74,12 @@ LOG = {
     'gamma': GAMMA,
     'optimizer': OPTIMIZER,
     'scheduler': 'stepLR',
+    'strict_acc': STRICT_ACC,
     'train_path': train_path,
     'test_path': test_path,
-    'num_train': LIM_TRAIN_SIZE,
-    'num_test': LIM_TEST_SIZE,
+    'num_train': len(train_dataset),
+    'num_test': len(test_dataset),
+    'num_val': len(val_dataset),
     'test': {
         'final_test_accuracy': 0,
         'img_boxes': [],
@@ -83,6 +87,7 @@ LOG = {
     # each entry contains loss, validation acc, time of training, batch size (meaning number of images trained in that epoch), and # of val training images
     'validation': [],
 }
+print(f"Running {EXPERIMENT_NAME} with:\n{LOG}\n")
 
 optimizer = OPTIMIZERS[OPTIMIZER](model, LEARNING_RATE, WEIGHT_DECAY)
 
@@ -90,9 +95,12 @@ lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=STEP_SIZE,
                                                gamma=GAMMA)
 
-train(model, optimizer, lr_scheduler, train_dataset, val_dataset, collate_fn, device, LOG, epochs=EPOCHS)
+train(model, optimizer, lr_scheduler, train_dataset, val_dataset, collate_fn, device, LOG, epochs=EPOCHS, strict=STRICT_ACC)
 
-check_accuracy(test_dataset, model, collate_fn, LOG, None, device)
+# remove
+test_dataset.train = False
+
+check_accuracy(test_dataset, model, collate_fn, LOG, None, device, strict=STRICT_ACC)
 
 log_path = f'./results/{EXPERIMENT_NAME}.json'
 with open(log_path, 'w') as f:

@@ -59,8 +59,8 @@ def get_model(backbone, out_channels, dim_reduction):
 
 # Returns the ResNet 50 backbone
 def get_resnet_model(dim_reduction, pretrained=False):
-    backbone = torchvision.models.resnet50(pretrained=pretrained).features
-    return get_model(backbone, 1280, dim_reduction)
+    assert dim_reduction != "conv", "Cannot use conv dim reduction with resnet"
+    return torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=pretrained)
 
 
 # Returns the MobileNet V2 backbone
@@ -71,8 +71,10 @@ def get_mobilenet_model(dim_reduction, pretrained=False):
 
 # Returns the MobileNet V2 backbone
 def get_inception_model(dim_reduction, pretrained=False):
-    backbone = torchvision.models.inception_v3(pretrained=pretrained).features
-    return get_model(backbone, 1280, dim_reduction)
+    backbone = torchvision.models.inception_v3(pretrained=pretrained, aux_logits=False)
+    modules = list(backbone.children())[:-1]
+    backbone = nn.Sequential(*modules)
+    return get_model(backbone, 2048, dim_reduction)
 
 
 # Returns the VGG 16 backbone

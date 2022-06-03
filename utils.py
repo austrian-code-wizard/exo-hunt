@@ -10,9 +10,6 @@ STATIC_BATCH_SIZE = 1
 
 def overlap(pred_box, true_box):
     # xmin, ymin, xmax, ymax
-    """true_center = ((true_box[0] + true_box[2]) / 2, (true_box[1] + true_box[3]) / 2)
-    width_val = true_center[0] > pred_box[0] and true_center[0] < pred_box[2]
-    height_val = true_center[1] > pred_box[1] and true_center[1] < pred_box[3]"""
     width_val = False
     if (pred_box[0] >= true_box[0] and pred_box[0] <= true_box[2]) or (pred_box[2] >= true_box[0] and pred_box[2] <= true_box[2]):
         width_val = True
@@ -22,19 +19,18 @@ def overlap(pred_box, true_box):
     return width_val and height_val
 
 
-def grade_boxes(pred_boxes, true_boxes):
+def grade_boxes(pred_boxes, true_boxes, strict=True):
     successes = 0
-    for pred in pred_boxes:
-        possibilities = 0
-        for true in true_boxes:
+    for true in true_boxes:
+        for pred in pred_boxes:
             if overlap(pred, true):
-                possibilities += 1
-        if possibilities:
-            successes += 1
+                if strict: return 1
+                successes += 1
+                break
     return successes
 
 
-def check_accuracy(dataset, model, collate_fn, log, epoch, device):
+def check_accuracy(dataset, model, collate_fn, log, epoch, device, strict=True):
     loader = DataLoader(dataset, batch_size=STATIC_BATCH_SIZE, shuffle=True, num_workers=4, collate_fn=collate_fn)
     log_split = 'validation'
     if loader.dataset.train:
@@ -55,8 +51,7 @@ def check_accuracy(dataset, model, collate_fn, log, epoch, device):
             pred_boxes = predictions[0]["boxes"]
             tg_boxes = targets[0]['boxes']
             
-            if grade_boxes(pred_boxes, tg_boxes) > 0:
-                num_correct += 1
+            num_correct += grade_boxes(pred_boxes, tg_boxes, strict=strict)
 
             if not loader.dataset.train:
                 log[log_split]['img_boxes'].append({
@@ -67,7 +62,7 @@ def check_accuracy(dataset, model, collate_fn, log, epoch, device):
 
             if not counter % 10: print(f'Iter {counter}')
             counter += 1
-            num_samples += 1
+            num_samples += len(tg_boxes) if strict else 1
         acc = float(num_correct) / num_samples
         if epoch is not None:
             log[log_split][epoch]['acc'] = acc
@@ -76,7 +71,7 @@ def check_accuracy(dataset, model, collate_fn, log, epoch, device):
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
 
-def train(model, optimizer, scheduler, dataset, val_dataset, collate_fn, device, log, epochs=1):
+def train(model, optimizer, scheduler, dataset, val_dataset, collate_fn, device, log, epochs=1, strict=True):
     """
     Train a model PyTorch Module API.
     
@@ -128,7 +123,7 @@ def train(model, optimizer, scheduler, dataset, val_dataset, collate_fn, device,
             'batch': counter,
             'val_size': 100,
         })
-        check_accuracy(val_dataset, model, collate_fn, log, e, device)
+        check_accuracy(val_dataset, model, collate_fn, log, e, device, strict=strict)
 
 
 def collate_fn(batch):
